@@ -187,7 +187,7 @@ class WatermarkImage : MethodChannel.MethodCallHandler {
                 x - (backgroundTextPaddingLeft ?: 0F),
                 baseY + textPaint.ascent() - (backgroundTextPaddingTop ?: 0F),
                 x + textWidth + (backgroundTextPaddingRight ?: 0F),
-                baseY + (lineHeight * lines.size) + (backgroundTextPaddingBottom ?: 0F)
+                baseY + (lineHeight * lines.size) - (backgroundTextPaddingBottom ?: 0F)
             )
             canvas.drawRect(rect, backgroundPaint)
         }
