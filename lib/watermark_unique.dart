@@ -22,6 +22,8 @@ class WatermarkUnique {
     int? backgroundTextPaddingBottom,
     int? backgroundTextPaddingLeft,
     int? backgroundTextPaddingRight,
+    bool isAlignLeft = true,
+    int? maxTextWidth,
     required ImageFormat imageFormat,
   }) {
     return WatermarkBridge.instance.addTextWatermark(
@@ -38,6 +40,8 @@ class WatermarkUnique {
       backgroundTextPaddingBottom,
       backgroundTextPaddingLeft,
       backgroundTextPaddingRight,
+      isAlignLeft,
+      maxTextWidth,
       imageFormat,
     );
   }

@@ -28,6 +28,8 @@ class WatermarkManager extends WatermarkBridge {
     int? backgroundTextPaddingBottom,
     int? backgroundTextPaddingLeft,
     int? backgroundTextPaddingRight,
+    bool isAlignLeft,
+    int? maxTextWidth,
     ImageFormat imageFormat,
   ) async {
     final result = await watermarkImageChannel.invokeMethod<String?>(
@@ -46,6 +48,8 @@ class WatermarkManager extends WatermarkBridge {
         'backgroundTextPaddingLeft': backgroundTextPaddingLeft,
         'backgroundTextPaddingRight': backgroundTextPaddingRight,
         'isNeedRotate': isNeedRotateToPortrait,
+        'isAlignLeft': isAlignLeft,
+        'maxTextWidth': maxTextWidth,
         'imageFormat': imageFormat.name,
       },
     );

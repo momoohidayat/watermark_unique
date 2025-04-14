@@ -46,6 +46,9 @@ class WatermarkImage : MethodChannel.MethodCallHandler {
                 val backgroundTextPaddingRight =
                     call.argument<Int?>("backgroundTextPaddingRight")?.toFloat()
                 val isNeedRotate = call.argument<Boolean?>("isNeedRotate") ?: true
+                val isAlignLeft = call.argument<Boolean?>("isAlignLeft")?: true
+                val maxTextWidth =
+                    call.argument<Int?>("maxTextWidth")?.toFloat()
 
                 if (text != null && filePath != null && x != null && y != null && textSize != null && color != null && quality != null && imageFormat != null) {
                     addTextWatermark(
@@ -63,6 +66,8 @@ class WatermarkImage : MethodChannel.MethodCallHandler {
                         backgroundTextPaddingRight,
                         imageFormat!!,
                         isNeedRotate,
+                        isAlignLeft,
+                        maxTextWidth,
                         result
                     )
                 } else {
@@ -116,6 +121,8 @@ class WatermarkImage : MethodChannel.MethodCallHandler {
         backgroundTextPaddingRight: Float?,
         imageFormat: String,
         isNeedRotate: Boolean,
+        isAlignLeft: Boolean,
+        maxTextWidth: Float?,
         result: MethodChannel.Result
     ) {
         var bitmap = BitmapFactory.decodeFile(filePath)
@@ -134,11 +141,12 @@ class WatermarkImage : MethodChannel.MethodCallHandler {
             color = colorWatermark
             textSize = textWatermarkSize
             style = Paint.Style.FILL
+            textAlign = if (isAlignLeft) Paint.Align.LEFT else Paint.Align.RIGHT 
             isAntiAlias = true
         }
 
-        val maxTextWidth = mutableBitmap.width - (backgroundTextPaddingLeft ?: 0F) - (backgroundTextPaddingRight ?: 0F)
-
+        val _maxTextWidth = maxTextWidth ?: mutableBitmap.width - (backgroundTextPaddingLeft ?: 0F) - (backgroundTextPaddingRight ?: 0F)
+        
         fun wrapText(text: String, maxWidth: Float): List<String> {
             val wrappedLines = mutableListOf<String>()
             val paragraphs = text.split("\n")
@@ -173,20 +181,24 @@ class WatermarkImage : MethodChannel.MethodCallHandler {
             return wrappedLines
         }
 
-        val lines = wrapText(text, maxTextWidth)
+        val lines = wrapText(text, _maxTextWidth)
         val lineHeight = textPaint.descent() - textPaint.ascent()
         val baseY = y
+
+        val textWidth = lines.maxOfOrNull { textPaint.measureText(it) } ?: 0f
+
+        val newX = if (isAlignLeft) x else (mutableBitmap.width - (backgroundTextPaddingLeft ?: 0F) - (backgroundTextPaddingRight ?: 0F) - textWidth - x)
 
         backgroundTextColor?.let { backgroundColor ->
             val backgroundPaint = Paint().apply {
                 this.color = backgroundColor
                 style = Paint.Style.FILL
             }
-            val textWidth = lines.maxOfOrNull { textPaint.measureText(it) } ?: 0f
+            
             val rect = RectF(
-                x - (backgroundTextPaddingLeft ?: 0F),
+                newX - (backgroundTextPaddingLeft ?: 0F),
                 baseY + textPaint.ascent() - (backgroundTextPaddingTop ?: 0F),
-                x + textWidth + (backgroundTextPaddingRight ?: 0F),
+                newX + textWidth + (backgroundTextPaddingRight ?: 0F),
                 baseY + (lineHeight * lines.size) - (backgroundTextPaddingBottom ?: 0F)
             )
             canvas.drawRect(rect, backgroundPaint)
@@ -194,7 +206,8 @@ class WatermarkImage : MethodChannel.MethodCallHandler {
 
         var currentY = baseY
         for (line in lines) {
-            canvas.drawText(line, x, currentY, textPaint)
+            val textX = if (isAlignLeft) newX else newX + textWidth
+            canvas.drawText(line, textX, currentY, textPaint)
             currentY += lineHeight
         }
 

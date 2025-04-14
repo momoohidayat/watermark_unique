@@ -28,19 +28,20 @@ public class WatermarkUniquePlugin: NSObject, FlutterPlugin {
                 return
             }
 
-         var backgroundTextColor: UIColor?
+            var backgroundTextColor: UIColor?
+            let isAlignLeft = arguments["isAlignLeft"] as? Bool ?? false
+            let maxTextWidth = arguments["maxTextWidth"] as? CGFloat
 
-         if let colorBackgroundHex = arguments["backgroundTextColor"] as? Int {
-             let alpha = CGFloat((colorBackgroundHex >> 24) & 0xFF) / 255.0
-             let red = CGFloat((colorBackgroundHex >> 16) & 0xFF) / 255.0
-             let green = CGFloat((colorBackgroundHex >> 8) & 0xFF) / 255.0
-             let blue = CGFloat(colorBackgroundHex & 0xFF) / 255.0
+            if let colorBackgroundHex = arguments["backgroundTextColor"] as? Int {
+                let alpha = CGFloat((colorBackgroundHex >> 24) & 0xFF) / 255.0
+                let red = CGFloat((colorBackgroundHex >> 16) & 0xFF) / 255.0
+                let green = CGFloat((colorBackgroundHex >> 8) & 0xFF) / 255.0
+                let blue = CGFloat(colorBackgroundHex & 0xFF) / 255.0
 
-             print("Alpha: \(alpha), Red: \(red), Green: \(green), Blue: \(blue)")
+                print("Alpha: \(alpha), Red: \(red), Green: \(green), Blue: \(blue)")
 
-             backgroundTextColor = UIColor(red: red, green: green, blue: blue, alpha: alpha)
-         }
-
+                backgroundTextColor = UIColor(red: red, green: green, blue: blue, alpha: alpha)
+            }
 
             let backgroundTextPaddingTop = arguments["backgroundTextPaddingTop"] as? CGFloat
             let backgroundTextPaddingBottom = arguments["backgroundTextPaddingBottom"] as? CGFloat
@@ -59,6 +60,8 @@ public class WatermarkUniquePlugin: NSObject, FlutterPlugin {
                              backgroundTextPaddingBottom: backgroundTextPaddingBottom,
                              backgroundTextPaddingLeft: backgroundTextPaddingLeft,
                              backgroundTextPaddingRight: backgroundTextPaddingRight,
+                             isAlignLeft: isAlignLeft,
+                             maxTextWidth: maxTextWidth,
                              imageFormat: imageFormat) { (newFilePath, error) in
                 if let error = error {
                     result(FlutterError(code: "PROCESSING_ERROR", message: "Failed to process image: \(error.localizedDescription)", details: nil))
@@ -116,6 +119,8 @@ public class WatermarkUniquePlugin: NSObject, FlutterPlugin {
                           backgroundTextPaddingBottom: CGFloat?,
                           backgroundTextPaddingLeft: CGFloat?,
                           backgroundTextPaddingRight: CGFloat?,
+                          isAlignLeft: Bool,
+                          maxTextWidth: CGFloat?,
                           imageFormat: String,
                           completion: @escaping (String?, Error?) -> Void) {
 
@@ -130,12 +135,17 @@ public class WatermarkUniquePlugin: NSObject, FlutterPlugin {
             image.draw(in: CGRect(origin: .zero, size: image.size))
 
             let textFont = UIFont.systemFont(ofSize: textWatermarkSize)
+            let paragraphStyle = NSMutableParagraphStyle()
+            paragraphStyle.alignment = isAlignLeft ? .left : .right
+            // paragraphStyle.lineHeightMultiple = 1.5
+
             let textAttributes: [NSAttributedString.Key: Any] = [
                 .font: textFont,
-                .foregroundColor: colorWatermark
+                .foregroundColor: colorWatermark,
+                .paragraphStyle: paragraphStyle
             ]
 
-            let maxTextWidth = image.size.width - x - (backgroundTextPaddingLeft ?? 0) - (backgroundTextPaddingRight ?? 0)
+            let _maxTextWidth = maxTextWidth ?? image.size.width - x - (backgroundTextPaddingLeft ?? 0) - (backgroundTextPaddingRight ?? 0)
 
             func wrappedText(_ text: String, width: CGFloat, font: UIFont) -> [String] {
                 let words = text.split(separator: " ")
@@ -162,19 +172,20 @@ public class WatermarkUniquePlugin: NSObject, FlutterPlugin {
                 return lines
             }
 
-            let lines = wrappedText(text, width: maxTextWidth, font: textFont)
+            let lines = wrappedText(text, width: _maxTextWidth, font: textFont)
             var currentY = y
 
             for line in lines {
                 let textSize = line.size(withAttributes: textAttributes)
-                let textRect = CGRect(x: x, y: currentY, width: textSize.width, height: textSize.height)
+                var newX = (isAlignLeft) ? x : (image.size.width - (backgroundTextPaddingLeft ?? 0) - (backgroundTextPaddingRight ?? 0) - textSize.width - x)
+                let textRect = CGRect(x: newX, y: currentY, width: textSize.width, height: textSize.height)
 
                 var backgroundRect = textRect.inset(by: UIEdgeInsets(top: -(backgroundTextPaddingTop ?? 0),
                                                                      left: -(backgroundTextPaddingLeft ?? 0),
                                                                      bottom: -(backgroundTextPaddingBottom ?? 0),
                                                                      right: -(backgroundTextPaddingRight ?? 0)))
 
-                backgroundRect = backgroundRect.intersection(CGRect(x: x-(backgroundTextPaddingTop ?? 0), y: y-(backgroundTextPaddingTop ?? 0), width: image.size.width, height: image.size.height))
+                backgroundRect = backgroundRect.intersection(CGRect(x: newX-(backgroundTextPaddingTop ?? 0), y: y-(backgroundTextPaddingTop ?? 0), width: image.size.width, height: image.size.height))
 
                 if let backgroundColor = backgroundTextColor {
                     backgroundColor.setFill()
@@ -183,7 +194,7 @@ public class WatermarkUniquePlugin: NSObject, FlutterPlugin {
 
                 line.draw(in: textRect, withAttributes: textAttributes)
 
-                currentY += textSize.height
+                currentY += (textSize.height + (backgroundTextPaddingTop ?? 0) + (backgroundTextPaddingBottom ?? 0))
             }
 
             guard let newImage = UIGraphicsGetImageFromCurrentImageContext(),

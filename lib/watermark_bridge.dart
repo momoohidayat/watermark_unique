@@ -40,10 +40,11 @@ abstract class WatermarkBridge extends PlatformInterface {
     int? backgroundTextPaddingBottom,
     int? backgroundTextPaddingLeft,
     int? backgroundTextPaddingRight,
+    bool isAlignLeft,
+    int? maxTextWidth,
     ImageFormat imageFormat,
   ) async {
-    throw UnimplementedError(
-        'Not implemented in WEB. You should use addTextWatermarkUint8List()');
+    throw UnimplementedError('Not implemented in WEB. You should use addTextWatermarkUint8List()');
   }
 
   /// Adds an image watermark to the image at the specified location with the given parameters.
@@ -60,8 +61,7 @@ abstract class WatermarkBridge extends PlatformInterface {
     int quality,
     ImageFormat imageFormat,
   ) async {
-    throw UnimplementedError(
-        'Not implemented in WEB. You should use addImageWatermarkUint8List()');
+    throw UnimplementedError('Not implemented in WEB. You should use addImageWatermarkUint8List()');
   }
 
   /// Adds a text watermark to the image at the specified location with the given parameters.
